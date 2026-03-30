@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>AI Attendance Dashboard</title>
+
+<style>
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f1f5f9;
+    margin: 0;
+}
+
+/* HEADER */
+header {
+    background: linear-gradient(90deg, #1e3a8a, #2563eb);
+    color: white;
+    padding: 18px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+}
+
+/* STATUS BAR */
+.status {
+    text-align: center;
+    padding: 8px;
+    font-size: 14px;
+}
+
+.live { color: green; }
+.offline { color: red; }
+
+/* CONTAINER */
+.container { padding: 20px; }
+
+/* CARDS */
+.cards {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.card {
+    flex: 1;
+    min-width: 200px;
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transition: 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+.card h2 { margin: 0; font-size: 30px; }
+
+.blue { color: #2563eb; }
+.green { color: #16a34a; }
+.red { color: #dc2626; }
+
+/* CONTROLS */
+.controls {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 15px;
+}
+
+input {
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+}
+
+.btn {
+    background: #2563eb;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.btn:hover {
+    background: #1e3a8a;
+}
+
+/* TABLE */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+th {
+    background: #1e3a8a;
+    color: white;
+    padding: 12px;
+}
+
+td {
+    padding: 10px;
+    text-align: center;
+}
+
+tr:nth-child(even) { background: #f8fafc; }
+
+/* 🔥 HIGHLIGHT NEW ENTRY */
+.highlight {
+    background: #d1fae5 !important;
+}
+
+/* BADGE */
+.badge {
+    background: #16a34a;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+}
+
+/* NAME */
+.name {
+    color: #2563eb;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* MODAL */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background: white;
+    padding: 20px;
+    border-radius: 12px;
+    width: 300px;
+    text-align: center;
+    animation: popup 0.3s ease;
+}
+
+@keyframes popup {
+    from { transform: scale(0.8); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+}
+
+.modal img {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    margin-bottom: 10px;
+    object-fit: cover;
+}
+
+.close {
+    float: right;
+    cursor: pointer;
+    font-size: 18px;
+}
+</style>
+</head>
+
+<body>
+
+<header>🎓 AI Face Attendance Dashboard</header>
+<div class="status" id="status">🟡 Connecting...</div>
+
+<div class="container">
+
+<div class="cards">
+    <div class="card"><h2 id="total" class="blue">0</h2><p>Total Records</p></div>
+    <div class="card"><h2 id="present" class="green">0</h2><p>Present</p></div>
+    <div class="card"><h2 id="absent" class="red">0</h2><p>Absent</p></div>
+    <div class="card"><h2 id="students" class="blue">10</h2><p>Total Students</p></div>
+</div>
+
+<div class="controls">
+    <input type="text" id="search" placeholder="🔍 Search..." onkeyup="filterTable()">
+    <div>
+        <button class="btn" onclick="downloadPDF()">📄 PDF</button>
+    </div>
+
+
+</div>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Date</th>
+<th>Time</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="tableBody"></tbody>
+</table>
+
+</div>
+
+<!-- MODAL -->
+<div id="studentModal" class="modal">
+<div class="modal-content">
+<span class="close" onclick="closeModal()">✖</span>
+<img id="studentImg" src="">
+<h3 id="studentName"></h3>
+<p id="studentDept"></p>
+<p id="studentReg"></p>
+</div>
+</div>
+
+<script>
+
+const TOTAL_STUDENTS = 10;
+
+const studentData = {
+    "Sharma": { img: "images/sharma.jpeg", dept: "IT", reg: "IT002" },
+    "Ajith": { img: "images/ajith.jpeg", dept: "IT", reg: "IT001" }
+};
+
+let globalData = [];
+let lastLength = 0;
+
+/* LOAD DATA */
+async function loadAttendance() {
+    try {
+        let res = await fetch("http://127.0.0.1:8000/attendance");
+
+        if(!res.ok){
+            document.getElementById("status").innerHTML = "🔴 Offline";
+            return;
+        }
+
+        document.getElementById("status").innerHTML = "🟢 Live";
+
+        let data = await res.json();
+        globalData = data;
+        renderTable(data);
+
+    } catch {
+        document.getElementById("status").innerHTML = "🔴 Server Error";
+    }
+}
+
+/* FORMAT */
+function formatTime(t){
+    let [h,m,s] = t.split(":");
+    let ampm = h >= 12 ? "PM" : "AM";
+    h = h % 12 || 12;
+    return `${h}:${m}:${s} ${ampm}`;
+}
+
+/* RENDER */
+function renderTable(data){
+    let table = document.getElementById("tableBody");
+    table.innerHTML = "";
+
+    let unique = new Set();
+
+    data.sort((a,b)=>a.name.localeCompare(b.name));
+
+    data.forEach((row,index)=>{
+        let tr = document.createElement("tr");
+
+        if(index === data.length-1 && data.length > lastLength){
+            tr.classList.add("highlight");
+        }
+
+        tr.innerHTML = `
+            <td class="name" onclick="openModal('${row.name}')">${row.name}</td>
+            <td>${new Date().toLocaleDateString()}</td>
+            <td>${formatTime(row.time)}</td>
+            <td><span class="badge">Present</span></td>
+        `;
+
+        table.appendChild(tr);
+        unique.add(row.name);
+    });
+
+    lastLength = data.length;
+
+    document.getElementById("total").innerText = data.length;
+    document.getElementById("present").innerText = unique.size;
+    document.getElementById("absent").innerText = TOTAL_STUDENTS - unique.size;
+}
+
+/* MODAL */
+function openModal(name){
+    let data = studentData[name];
+    if(!data) return;
+
+    document.getElementById("studentImg").src = data.img;
+    document.getElementById("studentName").innerText = name;
+    document.getElementById("studentDept").innerText = "Dept: " + data.dept;
+    document.getElementById("studentReg").innerText = "Reg No: " + data.reg;
+
+    document.getElementById("studentModal").style.display = "flex";
+}
+
+function closeModal(){
+    document.getElementById("studentModal").style.display = "none";
+}
+
+/* SEARCH */
+function filterTable(){
+    let input = document.getElementById("search").value.toLowerCase();
+
+    let filtered = globalData.filter(row =>
+        row.name.toLowerCase().includes(input)
+    );
+
+    renderTable(filtered);
+}
+
+/* PDF */
+function downloadPDF(){
+    window.open("http://127.0.0.1:8000/export-pdf");
+}
+
+/* 🔥 AUTO REFRESH */
+setInterval(loadAttendance, 3000);
+loadAttendance();
+
+</script>
+
+</body>
+</html>
