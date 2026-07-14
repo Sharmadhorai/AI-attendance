@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Attendance Login</title>
+  <link rel="stylesheet" href="/frontend/styles.css">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <p class="eyebrow">Staff Access</p>
+    <h1>Single Login</h1>
+    <p class="subtitle">Default login: <strong>staff / staff123</strong></p>
+    <form id="loginForm" class="auth-form" data-mode="login">
+      <label>
+        <span>Username</span>
+        <input id="loginUsername" type="text" value="staff" required>
+      </label>
+      <label>
+        <span>Password</span>
+        <input id="loginPassword" type="password" value="staff123" required>
+      </label>
+      <button type="submit" class="primary-btn full-width">Login</button>
+    </form>
+    <p id="authStatus" class="auth-status"></p>
+    <p class="auth-switch">New user? <a href="/frontend/register.html">Register</a></p>
+  </div>
+  <script src="/frontend/auth.js?v=auth-blue-2"></script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Attendance Dashboard</title>
+  <link rel="stylesheet" href="/frontend/styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="sidebar-top">
+        <p class="sidebar-linkline">New user? <a href="/frontend/register.html">Register</a></p>
+        <p class="eyebrow">Welcome</p>
+        <h1>AI Attendance</h1>
+        <p class="sidebar-copy">Effortless attendance through intelligent vision.</p>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button type="button" class="nav-btn active" data-view="dashboard">Dashboard</button>
+        <button type="button" class="nav-btn" data-view="monitor">Live Monitor</button>
+        <button type="button" class="nav-btn" data-view="students">All Students</button>
+        <button type="button" class="nav-btn" data-view="attendance">Attendance</button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <p class="staff-note">Staff: <span id="staffLabel">Staff</span></p>
+        <button type="button" id="logoutBtn" class="logout-btn">Logout</button>
+      </div>
+    </aside>
+
+    <main class="main-panel">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Command Center</p>
+          <h2 id="pageTitle">Attendance Dashboard</h2>
+        </div>
+        <div class="topbar-actions">
+          <span class="status-pill" id="apiHealth">Checking backend...</span>
+          <button type="button" class="ghost-btn" id="exportPdfBtn">Export PDF</button>
+          <button type="button" class="primary-btn" id="openStudentModalBtn">Add Student</button>
+        </div>
+      </header>
+
+      <section class="card-grid">
+        <article class="stat-card">
+          <span>Total Students</span>
+          <strong id="totalStudents">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Present</span>
+          <strong id="presentStudents">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>Absent</span>
+          <strong id="absentStudents">0</strong>
+        </article>
+        <article class="stat-card">
+          <span>On Duty</span>
+          <strong id="onDutyStudents">0</strong>
+        </article>
+      </section>
+
+      <section class="view active" id="view-dashboard">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Today</p>
+              <h3>Live Attendance Snapshot</h3>
+            </div>
+            <button type="button" class="ghost-btn" id="refreshDashboardBtn">Refresh</button>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>ID</th>
+                  <th>Class</th>
+                  <th>Department</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody id="todayAttendanceTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="view" id="view-monitor">
+        <div class="layout-two">
+          <article class="panel camera-panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Live Camera</p>
+                <h3>Multi Student Recognition</h3>
+              </div>
+              <span class="status-pill" id="cameraStatus">Camera stopped</span>
+            </div>
+
+            <div class="camera-controls">
+              <select id="cameraSelect"></select>
+              <button type="button" class="primary-btn" id="startCameraBtn">Start Camera</button>
+              <button type="button" class="ghost-btn" id="stopCameraBtn">Stop</button>
+            </div>
+
+            <div class="camera-stage">
+              <video id="cameraFeed" autoplay playsinline muted></video>
+              <canvas id="overlayCanvas"></canvas>
+            </div>
+
+            <div class="monitor-notes">
+              <div>
+                <span class="label">Anti-Spoof</span>
+                <strong id="livenessState">Waiting for 2 eye blinks</strong>
+              </div>
+              <div>
+                <span class="label">Detection</span>
+                <strong id="recognitionState">No attendance marked yet</strong>
+              </div>
+              <div>
+                <span class="label">Last Result</span>
+                <strong id="lastMatchState">None</strong>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-head">
+              <div>
+                <p class="eyebrow">Events</p>
+                <h3>Live Log</h3>
+              </div>
+            </div>
+            <div class="event-feed" id="eventFeed"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-students">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Directory</p>
+              <h3>All Students</h3>
+            </div>
+            <div class="students-tools">
+              <button type="button" class="ghost-btn" id="autoArrangeBtn">Auto Arrange All Depts</button>
+              <input id="studentSearchInput" class="search-input" type="search" placeholder="Search by name, ID, class, dept">
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Photo</th>
+                  <th>ID Number</th>
+                  <th>Name</th>
+                  <th>Class</th>
+                  <th>Dept</th>
+                  <th>Batch</th>
+                  <th>On Duty</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="studentTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+
+      <section class="view" id="view-attendance">
+        <article class="panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">History</p>
+              <h3>Attendance Records</h3>
+            </div>
+            <div class="attendance-tools">
+              <button type="button" class="ghost-btn" id="refreshAttendanceBtn">Refresh</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Name</th>
+                  <th>ID</th>
+                  <th>Date</th>
+                  <th>Hour Slot</th>
+                  <th>Time</th>
+                  <th>Class</th>
+                  <th>Department</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="attendanceHistoryTable"></tbody>
+            </table>
+          </div>
+        </article>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="studentModal">
+    <div class="modal-card">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Student Form</p>
+          <h3 id="studentModalTitle">Add Student</h3>
+        </div>
+        <button type="button" class="ghost-btn" id="closeStudentModalBtn">Close</button>
+      </div>
+      <form id="studentForm" class="form-grid" enctype="multipart/form-data">
+        <input type="hidden" id="studentRecordId">
+        <label>
+          <span>ID Number</span>
+          <input type="text" id="studentIdInput" inputmode="numeric" pattern="[0-9]+" maxlength="4" placeholder="01" required>
+        </label>
+        <label>
+          <span>Name</span>
+          <input type="text" id="studentNameInput" required>
+        </label>
+        <label>
+          <span>Class</span>
+          <input type="text" id="studentClassInput" required>
+        </label>
+        <label>
+          <span>Department</span>
+          <select id="studentDeptInput" required>
+            <option value="">Select Department</option>
+            <option value="B.tech IT">B.tech IT</option>
+            <option value="B.tech AI&amp;DS">B.tech AI&amp;DS</option>
+            <option value="B.E CSE">B.E CSE</option>
+            <option value="B.E CSE (CS)">B.E CSE (CS)</option>
+            <option value="B.E ECE">B.E ECE</option>
+            <option value="B.E R&amp;A">B.E R&amp;A</option>
+          </select>
+        </label>
+        <label>
+          <span>Batch</span>
+          <input type="text" id="studentBatchInput" required>
+        </label>
+        <label class="full-span">
+          <span>Student Image</span>
+          <input type="file" id="studentImageInput" accept="image/*">
+        </label>
+        <p class="form-note full-span" id="studentImageHint">Student image is required for new students.</p>
+        <button class="primary-btn full-width" type="submit">Save Student</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="exportModal">
+    <div class="modal-card export-modal-card">
+      <div class="panel-head">
+        <div>
+          <p class="eyebrow">Report Export</p>
+          <h3>Choose Department</h3>
+        </div>
+        <button type="button" class="ghost-btn" id="closeExportModalBtn">Close</button>
+      </div>
+      <div class="form-grid">
+        <label class="full-span">
+          <span>Department</span>
+          <select id="exportDeptSelect" required>
+            <option value="all">All Departments</option>
+            <option value="B.tech IT">B.tech IT</option>
+            <option value="B.tech AI&amp;DS">B.tech AI&amp;DS</option>
+            <option value="B.E CSE">B.E CSE</option>
+            <option value="B.E CSE (CS)">B.E CSE (CS)</option>
+            <option value="B.E ECE">B.E ECE</option>
+            <option value="B.E R&amp;A">B.E R&amp;A</option>
+          </select>
+        </label>
+        <button type="button" class="primary-btn full-width" id="confirmExportPdfBtn">Export PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="captureCanvas" class="hidden-canvas"></canvas>
+
+  <script src="/frontend/app.js?v=blue-theme-2"></script>
+</body>
+</html>

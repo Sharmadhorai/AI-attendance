@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Attendance Register</title>
+  <link rel="stylesheet" href="/frontend/styles.css">
+</head>
+<body class="auth-page">
+  <div class="auth-card">
+    <p class="eyebrow">Staff Setup</p>
+    <h1>Create Account</h1>
+    <p class="subtitle">Create a staff login for the attendance dashboard.</p>
+    <form id="registerForm" class="auth-form" data-mode="register">
+      <label>
+        <span>Username</span>
+        <input id="registerUsername" type="text" required>
+      </label>
+      <label>
+        <span>Password</span>
+        <input id="registerPassword" type="password" required>
+      </label>
+      <button type="submit" class="primary-btn full-width">Register</button>
+    </form>
+    <p id="authStatus" class="auth-status"></p>
+    <p class="auth-switch">Already have an account? <a href="/frontend/login.html">Go to login</a></p>
+  </div>
+  <script src="/frontend/auth.js?v=auth-blue-2"></script>
+</body>
+</html>
