@@ -3,5 +3,8 @@ __pycache__/
 .env
 *.pyc
 backend/dataset/
+backend/student_images/
+backend/student_profiles/
 frontend/images/
 *.pkl
+
