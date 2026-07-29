@@ -6,7 +6,7 @@ import re
 import sqlite3
 from datetime import datetime
 from typing import Optional
-from ultralytics import YOLO
+import onnxruntime as ort
 import cv2
 import numpy as np
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
@@ -171,7 +171,77 @@ def load_embeddings():
 
 KNOWN_FACES = load_embeddings()
 FACE_APP = FaceAnalysis(name="buffalo_s", allowed_modules=["detection", "recognition", "landmark_2d_106"])
-PHONE_MODEL = YOLO(os.path.join(BASE_DIR, "yolov8n.pt"))
+class Yolov8Onnx:
+    def __init__(self, model_path):
+        self.session = ort.InferenceSession(model_path, providers=['CPUExecutionProvider'])
+        inputs = self.session.get_inputs()
+        self.input_name = inputs[0].name
+        outputs = self.session.get_outputs()
+        self.output_name = outputs[0].name
+        self.names = {62: "tv", 67: "cell phone"}
+        
+    def __call__(self, frame):
+        h, w = frame.shape[:2]
+        input_size = 640
+        resized = cv2.resize(frame, (input_size, input_size))
+        rgb = cv2.cvtColor(resized, cv2.COLOR_BGR2RGB)
+        input_data = rgb.astype(np.float32) / 255.0
+        input_data = np.transpose(input_data, (2, 0, 1))
+        input_data = np.expand_dims(input_data, axis=0)
+        
+        outputs = self.session.run([self.output_name], {self.input_name: input_data})
+        output = outputs[0]
+        predictions = np.squeeze(output)
+        
+        boxes = []
+        confidences = []
+        class_ids = []
+        probs = predictions[4:, :]
+        
+        for class_idx in [62, 67]:
+            class_probs = probs[class_idx]
+            candidate_indices = np.where(class_probs > 0.15)[0]
+            for idx in candidate_indices:
+                conf = class_probs[idx]
+                cx = predictions[0, idx]
+                cy = predictions[1, idx]
+                box_w = predictions[2, idx]
+                box_h = predictions[3, idx]
+                
+                x1 = int((cx - box_w / 2) * (w / 640.0))
+                y1 = int((cy - box_h / 2) * (h / 640.0))
+                w_orig = int(box_w * (w / 640.0))
+                h_orig = int(box_h * (h / 640.0))
+                
+                boxes.append([x1, y1, w_orig, h_orig])
+                confidences.append(float(conf))
+                class_ids.append(class_idx)
+                
+        indices = cv2.dnn.NMSBoxes(boxes, confidences, score_threshold=0.15, nms_threshold=0.45)
+        
+        class ResultBox:
+            def __init__(self, cls, conf, xyxy):
+                self.cls = [cls]
+                self.conf = [conf]
+                self.xyxy = [xyxy]
+                
+        class Result:
+            def __init__(self, boxes):
+                self.boxes = boxes
+                
+        final_boxes = []
+        if len(indices) > 0:
+            for idx in indices.flatten():
+                x1, y1, bw, bh = boxes[idx]
+                final_boxes.append(ResultBox(
+                    cls=class_ids[idx],
+                    conf=confidences[idx],
+                    xyxy=[x1, y1, x1 + bw, y1 + bh]
+                ))
+                
+        return [Result(final_boxes)]
+
+PHONE_MODEL = Yolov8Onnx(os.path.join(BASE_DIR, "yolov8n.onnx"))
 try:
     FACE_APP.prepare(ctx_id=0, det_size=(320, 320))
 except Exception:
