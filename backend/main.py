@@ -171,7 +171,7 @@ def load_embeddings():
 
 KNOWN_FACES = load_embeddings()
 FACE_APP = FaceAnalysis(name="buffalo_l")
-PHONE_MODEL = YOLO("yolov8n.pt")
+PHONE_MODEL = YOLO(os.path.join(BASE_DIR, "yolov8n.pt"))
 try:
     FACE_APP.prepare(ctx_id=0, det_size=(320, 320))
 except Exception:
