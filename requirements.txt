@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 python-multipart
-opencv-python
+opencv-python-headless
 numpy
 insightface
 onnxruntime
