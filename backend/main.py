@@ -170,12 +170,12 @@ def load_embeddings():
 
 
 KNOWN_FACES = load_embeddings()
-FACE_APP = FaceAnalysis(name="buffalo_l")
+FACE_APP = FaceAnalysis(name="buffalo_s", allowed_modules=["detection", "recognition", "landmark_2d_106"])
 PHONE_MODEL = YOLO(os.path.join(BASE_DIR, "yolov8n.pt"))
 try:
     FACE_APP.prepare(ctx_id=0, det_size=(320, 320))
 except Exception:
-    FACE_APP.prepare(ctx_id=-1, det_size=(640, 640))
+    FACE_APP.prepare(ctx_id=-1, det_size=(320, 320))
 
 
 def save_embeddings():
